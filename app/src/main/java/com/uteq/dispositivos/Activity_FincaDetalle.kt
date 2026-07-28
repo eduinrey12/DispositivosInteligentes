@@ -1,5 +1,6 @@
 package com.uteq.dispositivos
 
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -10,6 +11,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -189,7 +191,27 @@ class Activity_FincaDetalle : AppCompatActivity() {
         when (op) {
             0 -> {
                 // Long click
-                Toast.makeText(this, "Dispositivo: \${dispositivo.nombre}", Toast.LENGTH_SHORT).show()
+                val dialogBuilder = AlertDialog.Builder(this)
+                dialogBuilder.setTitle("Información del Equipo")
+                dialogBuilder.setMessage("Nombre: ${dispositivo.nombre}\n\nID del Dispositivo:\n${dispositivo.devId}")
+                
+                // Botón para copiar ID
+                dialogBuilder.setPositiveButton("Copiar ID") { _, _ ->
+                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = android.content.ClipData.newPlainText("Device ID", dispositivo.devId)
+                    clipboard.setPrimaryClip(clip)
+                    Toast.makeText(this, "ID Copiado", Toast.LENGTH_SHORT).show()
+                }
+                
+                // Botón para configurar Infrarrojo (si es un Hub, probaremos abrilo)
+                dialogBuilder.setNeutralButton("Infrarrojo") { _, _ ->
+                    val intent = Intent(this, Activity_IrCategorias::class.java)
+                    intent.putExtra("devId", dispositivo.devId)
+                    startActivity(intent)
+                }
+
+                dialogBuilder.setNegativeButton("Cerrar", null)
+                dialogBuilder.show()
             }
             1, 2 -> {
                 val mDevice: IThingDevice = ThingHomeSdk.newDeviceInstance(dispositivo.devId)

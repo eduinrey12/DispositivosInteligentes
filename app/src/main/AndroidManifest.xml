@@ -74,6 +74,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-    </application>
+        <activity android:name=".Activity_IrCategorias" android:exported="false" />
+        <activity android:name=".Activity_IrMarcas" android:exported="false" />`n        <activity android:name=".Activity_IrRemotosPrueba" android:exported="false" />`n    </application>
 
 </manifest>

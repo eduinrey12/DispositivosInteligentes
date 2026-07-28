@@ -25,7 +25,12 @@ class FincaAdapter(
     override fun onBindViewHolder(holder: FincaViewHolder, position: Int) {
         val finca = fincas[position]
         holder.txtNombre.text = finca.name
-        holder.txtEstado.text = "Dispositivos: \${finca.deviceList?.size ?: 0}"
+        
+        // Intentar obtener la cantidad de dispositivos del cache local
+        val cachedHome = com.thingclips.smart.home.sdk.ThingHomeSdk.newHomeInstance(finca.homeId).homeBean
+        val deviceCount = cachedHome?.deviceList?.size ?: finca.deviceList?.size ?: 0
+        
+        holder.txtEstado.text = "Dispositivos: ${deviceCount}"
         
         holder.itemView.setOnClickListener {
             onItemClick(finca.homeId)
