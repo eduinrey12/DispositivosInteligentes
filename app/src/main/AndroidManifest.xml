@@ -54,16 +54,16 @@
             android:name=".Activity_Registrar"
             android:exported="false" />
         <activity
-            android:name=".Activity_Facultades"
+            android:name=".Activity_Fincas"
             android:exported="false" />
         <activity
-            android:name=".Activity_Dispositivos"
+            android:name=".Activity_FincaDetalle"
             android:exported="false" />
         <activity
             android:name=".Activity_IniciarSesion"
             android:exported="false" />
         <activity
-            android:name=".Activity_Aulas"
+            android:name=".Activity_FincaAgregar"
             android:exported="false" />
         <activity
             android:name=".Activity_Bienvenida"

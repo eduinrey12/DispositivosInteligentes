@@ -2,7 +2,7 @@ package com.uteq.dispositivos.Modelo
 
 data class Dispositivo(
     val id_dispositivo: Int,
-    val aula: Aula?,
+    
     val nombre: String?,
     val devId: String?,
     val marca: String?,
@@ -11,5 +11,5 @@ data class Dispositivo(
     var estado2: Boolean = false
 ) {
     fun getIdDispositivo(): Int = id_dispositivo
-    fun getIdAula(): Aula? = aula
+    
 }

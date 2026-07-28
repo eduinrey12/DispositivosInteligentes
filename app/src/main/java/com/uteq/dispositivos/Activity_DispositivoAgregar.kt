@@ -37,7 +37,7 @@ class Activity_DispositivoAgregar : AppCompatActivity() {
 
     private var paso = 1
     private var devId = ""
-    private var homeId = 190971144L
+    private var homeId = 0L
 
     // UI elements needed globally for permission callback
     private lateinit var btnContinuarGlobal: Button
@@ -60,7 +60,7 @@ class Activity_DispositivoAgregar : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dispositivo_agregar)
 
-        homeId = intent.getLongExtra("homeId", 190971144L)
+        homeId = intent.getLongExtra("homeId", 0L)
 
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
         val btnContinuar = findViewById<Button>(R.id.btnContinuar)
