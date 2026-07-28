@@ -85,8 +85,7 @@
             android:id="@+id/llDatosWifi"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:visibility="gone">
+            android:orientation="vertical">
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/ssid_text_input_layout"
@@ -163,7 +162,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                android:text="TextView"
+                android:text="ID Dispositivo"
                 android:textColor="#007224"
                 android:textSize="20sp"
                 android:textStyle="bold" />

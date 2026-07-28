@@ -19,6 +19,13 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
+    <!-- Bluetooth Permissions for Tuya BLE -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+
     <meta-data
         android:name="THING_SMART_APPKEY"
         android:value="fqkatyqm49kdjn5u8t9w" />
@@ -27,6 +34,7 @@
         android:value="sfa3qsqvh9fs987ahc345qj4ej9u8yfm" />
 
     <application
+        android:name=".TuyaApplication"
         android:usesCleartextTraffic="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
