@@ -16,8 +16,20 @@ class ScannedDeviceAdapter(
     private val deviceList = mutableListOf<ScanDeviceBean>()
 
     fun addDevice(device: ScanDeviceBean) {
-        // Prevent duplicates based on MAC address
-        if (deviceList.none { it.mac == device.mac }) {
+        val newKey = device.uuid?.ifEmpty { null } 
+            ?: device.address?.ifEmpty { null } 
+            ?: device.mac?.ifEmpty { null } 
+            ?: device.productId
+
+        val exists = deviceList.any { existing ->
+            val existingKey = existing.uuid?.ifEmpty { null } 
+                ?: existing.address?.ifEmpty { null } 
+                ?: existing.mac?.ifEmpty { null } 
+                ?: existing.productId
+            existingKey != null && existingKey == newKey
+        }
+
+        if (!exists) {
             deviceList.add(device)
             notifyItemInserted(deviceList.size - 1)
         }
@@ -38,7 +50,6 @@ class ScannedDeviceAdapter(
         val device = deviceList[position]
         
         val devName = if (device.name.isNullOrEmpty() || device.name!!.startsWith("key") || device.name!!.length > 15) {
-            // Si el nombre está vacío o es un hash interno, mostramos el Product ID que suele tener el nombre corto (ej: WIFIMCB)
             if (!device.productId.isNullOrEmpty()) {
                 "Producto: ${device.productId}"
             } else {
@@ -49,7 +60,7 @@ class ScannedDeviceAdapter(
         }
         
         holder.txtDeviceName.text = devName
-        holder.txtDeviceMac.text = "MAC: ${device.mac ?: "Desconocida"}"
+        holder.txtDeviceMac.text = "ID: ${device.uuid ?: device.mac ?: "Desconocido"}"
         
         holder.itemView.setOnClickListener {
             onDeviceSelected(device)

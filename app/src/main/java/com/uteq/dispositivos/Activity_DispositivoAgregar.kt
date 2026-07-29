@@ -121,7 +121,6 @@ class Activity_DispositivoAgregar : AppCompatActivity() {
         scannedDeviceAdapter = ScannedDeviceAdapter { device ->
             // Cuando se toca un dispositivo en la lista
             scannedDeviceBeanGlobal = device
-            mThingActivator?.stop() // Detener EZ Mode
             ThingHomeSdk.getBleOperator().stopLeScan()
             
             runOnUiThread {
@@ -135,11 +134,11 @@ class Activity_DispositivoAgregar : AppCompatActivity() {
                     device.name
                 }
                 txtCategoriaGlobal.text = devName
-                imagenGlobal.visibility = View.VISIBLE
+                imagenGlobal.visibility = View.GONE
                 llEscanearGlobal.visibility = View.VISIBLE
                 btnContinuarGlobal.visibility = View.VISIBLE
                 btnContinuarGlobal.text = "Agregar"
-                paso = 3
+                paso = 4
             }
         }
         
@@ -148,35 +147,57 @@ class Activity_DispositivoAgregar : AppCompatActivity() {
 
         btnContinuar.setOnClickListener {
             if (paso == 1) {
-                btnAtras.visibility = View.VISIBLE
-                txtpaso.text = "Reinicie el dispositivo"
-                txtpasoSub.text = "Mantenga pulsado el botón REINICIAR durante 5 segundos hasta que el indicador parpadee"
-                imagen.setImageResource(R.drawable.breakewifi)
-                llWifi.visibility = View.GONE
-                paso = 2
-            } else if (paso == 2) {
                 if (txtssid.text.toString().trim().isEmpty() || txtclave.text.toString().trim().isEmpty()) {
                     Toast.makeText(this, "Por favor, ingrese el SSID y la clave WiFi", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
-                
+
                 txtssidGlobal.text = txtssid.text.toString()
                 txtclaveGlobal.text = txtclave.text.toString()
-                
+                scannedDeviceBeanGlobal = null
+                scannedDeviceAdapter.clearDevices()
+
+                btnAtras.visibility = View.VISIBLE
+                txtpaso.text = "Reinicie el dispositivo"
+                txtpasoSub.text = "Mantenga pulsado el botón REINICIAR durante 5 segundos hasta que el indicador parpadee"
+                imagen.setImageResource(R.drawable.breakewifi)
+                imagen.visibility = View.VISIBLE
+                llWifi.visibility = View.GONE
+                rvScannedDevices.visibility = View.GONE
+                btnContinuar.text = "Continuar"
+                paso = 2
+            } else if (paso == 2) {
+                scannedDeviceBeanGlobal = null
+                scannedDeviceAdapter.clearDevices()
+
                 txtpaso.text = "Buscando dispositivos..."
-                txtpasoSub.text = "Si tu dispositivo aparece abajo, tócalo. Si no, pulsa 'Vincular por WiFi'."
+                txtpasoSub.text = "Si tu dispositivo aparece abajo, tócalo. De lo contrario, pulsa Continuar."
                 animationView.visibility = View.GONE
                 imagen.visibility = View.GONE
+                llWifi.visibility = View.GONE
                 llEscanear.visibility = View.GONE
                 rvScannedDevices.visibility = View.VISIBLE
-                scannedDeviceAdapter.clearDevices()
                 btnContinuar.visibility = View.VISIBLE
-                btnContinuar.text = "Vincular por WiFi (Modo EZ)"
-                paso = 2
+                btnContinuar.text = "Continuar"
+                paso = 3
 
                 checkPermissionsAndScan()
                 btnAtras.visibility = View.VISIBLE
             } else if (paso == 3) {
+                // Usuario no seleccionó un dispositivo de la lista y dio clic a Continuar (Modo EZ directo)
+                scannedDeviceBeanGlobal = null
+                ThingHomeSdk.getBleOperator().stopLeScan()
+
+                rvScannedDevices.visibility = View.GONE
+                txtpaso.text = "Asignar Nombre"
+                txtpasoSub.text = "Asigne un nombre a su nuevo dispositivo y presione Agregar."
+                txtCategoria.text = "Dispositivo WiFi"
+                imagen.visibility = View.GONE
+                llEscanear.visibility = View.VISIBLE
+                btnContinuar.visibility = View.VISIBLE
+                btnContinuar.text = "Agregar"
+                paso = 4
+            } else if (paso == 4) {
                 // Agregar dispositivo
                 val nombreIngresado = txtNombre.text.toString().trim()
                 if (nombreIngresado.isEmpty()) {
@@ -203,21 +224,37 @@ class Activity_DispositivoAgregar : AppCompatActivity() {
                 txtpaso.text = "Selecciona una red WiFi"
                 txtpasoSub.text = "Necesitamos detalles de la red WiFi. Completa la información para continuar"
                 imagen.setImageResource(R.drawable.no_connection_pana)
+                imagen.visibility = View.VISIBLE
                 llWifi.visibility = View.VISIBLE
+                rvScannedDevices.visibility = View.GONE
                 btnContinuar.text = "Continuar"
                 paso = 1
             } else if (paso == 3) {
+                ThingHomeSdk.getBleOperator().stopLeScan()
                 btnAtras.visibility = View.VISIBLE
                 txtpaso.text = "Reinicie el dispositivo"
                 txtpasoSub.text = "Mantenga pulsado el botón REINICIAR durante 5 segundos hasta que el indicador parpadee"
                 imagen.setImageResource(R.drawable.breakewifi)
+                imagen.visibility = View.VISIBLE
                 llWifi.visibility = View.GONE
-                animationView.visibility = View.GONE
-                llEscanear.visibility = View.GONE
                 rvScannedDevices.visibility = View.GONE
-                btnContinuar.isEnabled = true
+                llEscanear.visibility = View.GONE
+                btnContinuar.visibility = View.VISIBLE
                 btnContinuar.text = "Continuar"
                 paso = 2
+            } else if (paso == 4) {
+                btnAtras.visibility = View.VISIBLE
+                scannedDeviceBeanGlobal = null
+                txtpaso.text = "Buscando dispositivos..."
+                txtpasoSub.text = "Si tu dispositivo aparece abajo, tócalo. De lo contrario, pulsa Continuar."
+                imagen.visibility = View.GONE
+                llWifi.visibility = View.GONE
+                llEscanear.visibility = View.GONE
+                rvScannedDevices.visibility = View.VISIBLE
+                btnContinuar.visibility = View.VISIBLE
+                btnContinuar.text = "Continuar"
+                paso = 3
+                checkPermissionsAndScan()
             }
         }
     }
@@ -258,6 +295,9 @@ class Activity_DispositivoAgregar : AppCompatActivity() {
     }
 
     private fun startDeviceScanning() {
+        scannedDeviceBeanGlobal = null
+        scannedDeviceAdapter.clearDevices()
+
         val scanSetting = LeScanSetting.Builder()
             .setTimeout(120000)
             .addScanType(ScanType.SINGLE)
@@ -267,15 +307,23 @@ class Activity_DispositivoAgregar : AppCompatActivity() {
 
         val discoveredMacs = mutableSetOf<String>()
 
+        Log.d("MiHogar-Escaneo", "Iniciando escaneo BLE en tiempo real...")
+
         ThingHomeSdk.getBleOperator().startLeScan(scanSetting, object : BleScanResponse {
             override fun onResult(bean: ScanDeviceBean) {
-                val mac = bean.mac ?: return
-                
-                if (discoveredMacs.add(mac)) {
+                val uniqueId = bean.uuid?.ifEmpty { null } 
+                    ?: bean.address?.ifEmpty { null } 
+                    ?: bean.mac?.ifEmpty { null } 
+                    ?: bean.productId?.ifEmpty { null } 
+                    ?: return
+
+                Log.d("MiHogar-Escaneo", ">>> Dispositivo BLE encontrado en tiempo real: Name=${bean.name}, MAC=${bean.mac}, UUID=${bean.uuid}, ProductId=${bean.productId}")
+
+                if (discoveredMacs.add(uniqueId)) {
                     runOnUiThread {
                         if (scannedDeviceAdapter.itemCount == 0) {
                             txtpasoGlobal.text = "Dispositivos encontrados"
-                            txtpasoSubGlobal.text = "Toca el dispositivo que deseas agregar, o pulsa 'Vincular por WiFi'."
+                            txtpasoSubGlobal.text = "Toca el dispositivo en la lista o pulsa Continuar para vincular por WiFi."
                         }
                         scannedDeviceAdapter.addDevice(bean)
                     }
@@ -294,35 +342,32 @@ class Activity_DispositivoAgregar : AppCompatActivity() {
                 val scannedDevice = scannedDeviceBeanGlobal
                 if (scannedDevice != null && !scannedDevice.uuid.isNullOrEmpty()) {
                     Log.d("MiHogar-Vinculacion", "Iniciando vinculación para dispositivo BLE seleccionado: ${scannedDevice.uuid}")
+                    
+                    val builder = ActivatorBuilder()
+                        .setSsid(txtssidGlobal.text.toString())
+                        .setContext(this@Activity_DispositivoAgregar)
+                        .setPassword(txtclaveGlobal.text.toString())
+                        .setActivatorModel(ActivatorModelEnum.THING_EZ)
+                        .setTimeOut(120)
+                        .setToken(token)
+                        .setListener(object : IThingSmartActivatorListener {
+                            override fun onError(errorCode: String, errorMsg: String) {
+                                Log.w("MiHogar-Vinculacion", "Error al vincular dispositivo BLE ($errorCode: $errorMsg). Intentando Modo EZ universal...")
+                                iniciarModoEZ(token, customName)
+                            }
 
-                    ThingHomeSdk.getActivatorInstance().newMultiActivator(
-                        ActivatorBuilder()
-                            .setSsid(txtssidGlobal.text.toString())
-                            .setContext(this@Activity_DispositivoAgregar)
-                            .setPassword(txtclaveGlobal.text.toString())
-                            .setActivatorModel(ActivatorModelEnum.THING_EZ)
-                            .setTimeOut(120)
-                            .setToken(token)
-                            .setListener(object : IThingSmartActivatorListener {
-                                override fun onError(errorCode: String, errorMsg: String) {
-                                    Log.e("MiHogar-Vinculacion", "Error al vincular: $errorCode - $errorMsg")
-                                    runOnUiThread {
-                                        val alertMsg = "Error al vincular ($errorCode).\n\nVerifica:\n1) Tu WiFi sea de 2.4GHz (no 5GHz).\n2) La clave sea correcta.\n3) Si el dispositivo estuvo en otra cuenta, elimínalo primero."
-                                        Toast.makeText(applicationContext, alertMsg, Toast.LENGTH_LONG).show()
-                                        restablecerUIParaReintento()
-                                    }
-                                }
+                            override fun onActiveSuccess(devResp: DeviceBean) {
+                                Log.i("MiHogar-Vinculacion", "¡Éxito! Dispositivo vinculado: ${devResp.devId}")
+                                finalizarVinculacion(devResp.devId, customName)
+                            }
 
-                                override fun onActiveSuccess(devResp: DeviceBean) {
-                                    Log.i("MiHogar-Vinculacion", "¡Éxito! Dispositivo vinculado: ${devResp.devId}")
-                                    finalizarVinculacion(devResp.devId, customName)
-                                }
+                            override fun onStep(step: String, data: Any) {
+                                Log.d("MiHogar-Vinculacion", "Paso BLE: $step - $data")
+                            }
+                        })
 
-                                override fun onStep(step: String, data: Any) {
-                                    Log.d("MiHogar-Vinculacion", "Paso: $step - $data")
-                                }
-                            })
-                    ).start()
+                    mThingActivator = ThingHomeSdk.getActivatorInstance().newActivator(builder)
+                    mThingActivator?.start()
                 } else {
                     Log.d("MiHogar-Vinculacion", "No hay dispositivo BLE seleccionado. Iniciando Modo EZ (SmartConfig)...")
                     iniciarModoEZ(token, customName)
