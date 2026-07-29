@@ -95,23 +95,41 @@ class Activity_FincaDetalle : AppCompatActivity() {
         if (deviceBeans != null) {
             for (i in deviceBeans.indices) {
                 val d = deviceBeans[i]
+                
+                // Inspeccionar dps para estado inicial ("1", "20", "101")
                 var estado = false
-                if (d.dps != null && d.dps.containsKey("1")) {
-                    val state = d.dps["1"]
-                    if (state is Boolean) {
-                        estado = state
+                if (d.dps != null) {
+                    val stateVal = d.dps["1"] ?: d.dps["20"] ?: d.dps["101"]
+                    if (stateVal is Boolean) {
+                        estado = stateVal
                     }
                 }
-                // Determine model for correct UI
-                var modelo = "Generic"
-                if (d.iconUrl?.contains("wf_cz") == true) modelo = "wf_cz"
-                if (d.iconUrl?.contains("wf_ble_cz") == true) modelo = "wf_ble_cz"
-                if (d.iconUrl?.contains("wf_ble_kg") == true) modelo = "wf_ble_kg"
+
+                // Clasificar modelo (Infrarrojo Steren vs Tomacorriente / Enchufe)
+                val category = d.category ?: ""
+                val productId = d.productId ?: ""
+                val name = d.name ?: ""
+
+                val esInfrarrojo = category.contains("wnykq", ignoreCase = true) ||
+                        category.contains("ir", ignoreCase = true) ||
+                        productId.contains("key54vrth5askhsj", ignoreCase = true) ||
+                        name.contains("steren", ignoreCase = true) ||
+                        name.contains("infrarrojo", ignoreCase = true) ||
+                        name.contains("ir", ignoreCase = true) ||
+                        name.contains("control", ignoreCase = true)
+
+                val modelo = if (esInfrarrojo) {
+                    "infrarrojo"
+                } else if (category.contains("cz", ignoreCase = true) || category.contains("socket", ignoreCase = true) || category.contains("plug", ignoreCase = true)) {
+                    "wf_cz"
+                } else {
+                    "wf_ble_cz"
+                }
 
                 allDevicesList.add(
                     Dispositivo(
                         i + 1,
-                        d.name,
+                        d.name ?: "Dispositivo",
                         d.devId,
                         "Tuya",
                         modelo,
@@ -121,7 +139,7 @@ class Activity_FincaDetalle : AppCompatActivity() {
                 )
             }
         }
-        aplicarFiltro(null, homeBean) // Show all by default
+        aplicarFiltro(null, homeBean)
     }
 
     private fun prepararFiltrosLotes(homeBean: HomeBean) {
@@ -161,10 +179,8 @@ class Activity_FincaDetalle : AppCompatActivity() {
         filteredDevicesList.clear()
         
         if (roomId == null) {
-            // Todos
             filteredDevicesList.addAll(allDevicesList)
         } else {
-            // Encontrar dispositivos en este cuarto
             val room = homeBean.rooms?.firstOrNull { it.roomId == roomId }
             val devicesInRoom = room?.deviceList ?: emptyList()
             
@@ -176,8 +192,8 @@ class Activity_FincaDetalle : AppCompatActivity() {
         }
 
         if (adapterDispositivo == null) {
-            adapterDispositivo = DispositivoAdapter(filteredDevicesList) { id, posicion, op, it ->
-                manejarClicDispositivo(id, posicion, op, it)
+            adapterDispositivo = DispositivoAdapter(filteredDevicesList) { id, posicion, op, view ->
+                manejarClicDispositivo(id, posicion, op, view)
             }
             rcvDispositivos.adapter = adapterDispositivo
         } else {
@@ -187,62 +203,76 @@ class Activity_FincaDetalle : AppCompatActivity() {
 
     private fun manejarClicDispositivo(id: Int, posicion: Int, op: Int, view: View) {
         val dispositivo = filteredDevicesList.firstOrNull { it.id_dispositivo == id } ?: return
-        
-        when (op) {
-            0 -> {
-                // Long click
-                val dialogBuilder = AlertDialog.Builder(this)
-                dialogBuilder.setTitle("Información del Equipo")
-                dialogBuilder.setMessage("Nombre: ${dispositivo.nombre}\n\nID del Dispositivo:\n${dispositivo.devId}")
-                
-                // Botón para copiar ID
-                dialogBuilder.setPositiveButton("Copiar ID") { _, _ ->
-                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val clip = android.content.ClipData.newPlainText("Device ID", dispositivo.devId)
-                    clipboard.setPrimaryClip(clip)
-                    Toast.makeText(this, "ID Copiado", Toast.LENGTH_SHORT).show()
-                }
-                
-                // Botón para configurar Infrarrojo (si es un Hub, probaremos abrilo)
-                dialogBuilder.setNeutralButton("Infrarrojo") { _, _ ->
-                    val intent = Intent(this, Activity_IrCategorias::class.java)
-                    intent.putExtra("devId", dispositivo.devId)
-                    startActivity(intent)
+        val devId = dispositivo.devId ?: return
+
+        // Si es dispositivo Infrarrojo o se solicitó la opción 99
+        if (dispositivo.modelo == "infrarrojo" || op == 99) {
+            Log.d("MiHogar-Control", "Abriendo mando Infrarrojo para devId: $devId")
+            val intent = Intent(this, Activity_IrCategorias::class.java)
+            intent.putExtra("devId", devId)
+            startActivity(intent)
+            return
+        }
+
+        if (op == 0) {
+            // Long click: Diálogo con detalles y opción de Infrarrojo / Copiar ID
+            val dialogBuilder = AlertDialog.Builder(this)
+            dialogBuilder.setTitle(dispositivo.nombre)
+            dialogBuilder.setMessage("ID Dispositivo:\n$devId\n\nEstado actual: ${if (dispositivo.estado) "ENCENDIDO" else "APAGADO"}")
+
+            dialogBuilder.setPositiveButton("Copiar ID") { _, _ ->
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = android.content.ClipData.newPlainText("Device ID", devId)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(this, "ID Copiado", Toast.LENGTH_SHORT).show()
+            }
+
+            dialogBuilder.setNeutralButton("Infrarrojo") { _, _ ->
+                val intent = Intent(this, Activity_IrCategorias::class.java)
+                intent.putExtra("devId", devId)
+                startActivity(intent)
+            }
+
+            dialogBuilder.setNegativeButton("Cerrar", null)
+            dialogBuilder.show()
+        } else {
+            // Short click / Botón ON-OFF: Conmutar Encendido / Apagado (Tomacorriente)
+            val mDevice: IThingDevice = ThingHomeSdk.newDeviceInstance(devId)
+            val devBean = ThingHomeSdk.getDataInstance().getDeviceBean(devId)
+
+            // Determinar la clave DP correcta (normalmente 1, 20 o 101)
+            var dpKey = "1"
+            if (devBean?.dps != null) {
+                if (devBean.dps.containsKey("1")) dpKey = "1"
+                else if (devBean.dps.containsKey("20")) dpKey = "20"
+                else if (devBean.dps.containsKey("101")) dpKey = "101"
+            }
+
+            val newState = !dispositivo.estado
+            dispositivo.estado = newState
+            adapterDispositivo?.notifyItemChanged(posicion)
+
+            val jsonCommand = "{\"$dpKey\": $newState}"
+            Log.d("MiHogar-Control", "Enviando comando ON/OFF a $devId ($dpKey): $jsonCommand")
+
+            mDevice.publishDps(jsonCommand, object : IResultCallback {
+                override fun onError(code: String, error: String) {
+                    Log.e("MiHogar-Control", "Error enviando comando ON/OFF: $code - $error")
+                    runOnUiThread {
+                        dispositivo.estado = !newState // Revertir si hubo error
+                        adapterDispositivo?.notifyItemChanged(posicion)
+                        Toast.makeText(applicationContext, "Error al cambiar estado: $error", Toast.LENGTH_SHORT).show()
+                    }
                 }
 
-                dialogBuilder.setNegativeButton("Cerrar", null)
-                dialogBuilder.show()
-            }
-            1, 2 -> {
-                val mDevice: IThingDevice = ThingHomeSdk.newDeviceInstance(dispositivo.devId)
-                try {
-                    val newState = !dispositivo.estado
-                    dispositivo.estado = newState
-                    mDevice.publishDps("{\"1\": \$newState}", object : IResultCallback {
-                        override fun onError(code: String, error: String) {
-                            Log.e("DP_ERROR", "\$code \$error")
-                        }
-                        override fun onSuccess() {}
-                    })
-                } catch (e: Exception) {
-                    Toast.makeText(applicationContext, e.message, Toast.LENGTH_LONG).show()
+                override fun onSuccess() {
+                    Log.i("MiHogar-Control", "¡Estado cambiado exitosamente a $newState!")
+                    runOnUiThread {
+                        val estadoStr = if (newState) "ENCENDIDO" else "APAGADO"
+                        Toast.makeText(applicationContext, "${dispositivo.nombre}: $estadoStr", Toast.LENGTH_SHORT).show()
+                    }
                 }
-                adapterDispositivo?.notifyItemChanged(posicion)
-            }
-            3 -> {
-                val mDevice3: IThingDevice = ThingHomeSdk.newDeviceInstance(dispositivo.devId)
-                try {
-                    val newState = !dispositivo.estado2
-                    dispositivo.estado2 = newState
-                    mDevice3.publishDps("{\"2\": \$newState}", object : IResultCallback {
-                        override fun onError(code: String, error: String) {}
-                        override fun onSuccess() {}
-                    })
-                } catch (e: Exception) {
-                    Toast.makeText(applicationContext, e.message, Toast.LENGTH_LONG).show()
-                }
-                adapterDispositivo?.notifyItemChanged(posicion)
-            }
+            })
         }
     }
 }

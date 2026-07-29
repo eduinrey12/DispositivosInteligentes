@@ -38,11 +38,21 @@ class DispositivoAdapter(
             true
         }
 
+        holder.itemView.setOnClickListener { v ->
+            if (dispositivo.modelo == "infrarrojo") {
+                onItemClickListener.onItemClick(dispositivo.id_dispositivo, position, 99, v)
+            } else {
+                onItemClickListener.onItemClick(dispositivo.id_dispositivo, position, 1, v)
+            }
+        }
+
         when (dispositivo.modelo) {
+            "infrarrojo" -> holder.foto.setImageResource(R.drawable.breakewifi)
             "wf_cz" -> holder.foto.setImageResource(R.drawable.dispositivo_tomacorriente)
             "wf_ble_cz" -> holder.foto.setImageResource(R.drawable.dispositivo_switch)
             "IOT-BASED" -> holder.foto.setImageResource(R.drawable.dispositivo_breaker)
             "wf_ble_kg" -> holder.foto.setImageResource(R.drawable.dispositivo_touch)
+            else -> holder.foto.setImageResource(R.drawable.dispositivo_tomacorriente)
         }
 
         if (dispositivo.modelo != "wf_cz") {
@@ -51,10 +61,8 @@ class DispositivoAdapter(
             bloqueo.visibility = View.GONE
             if (dispositivo.estado) {
                 estado.setImageResource(R.drawable.dispositivo_bloquear)
-                bloqueo.visibility = View.GONE
             } else {
                 estado.setImageResource(R.drawable.dispositivo_desbloquear)
-                bloqueo.visibility = View.VISIBLE
             }
 
             estado.setOnClickListener { v ->
@@ -77,7 +85,7 @@ class DispositivoAdapter(
             }
 
             estado1.setOnClickListener { v ->
-                onItemClickListener.onItemClick(dispositivo.id_dispositivo, position, 2, v)
+                onItemClickListener.onItemClick(dispositivo.id_dispositivo, position, 1, v)
             }
 
             estado2.setOnClickListener { v ->
