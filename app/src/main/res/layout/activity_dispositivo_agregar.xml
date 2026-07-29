@@ -72,6 +72,18 @@
         app:layout_constraintTop_toBottomOf="@+id/llCabezeraInformacion"
         app:srcCompat="@drawable/no_connection_pana" />
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvScannedDevices"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@+id/llCabezeraInformacion"
+        app:layout_constraintBottom_toTopOf="@+id/btnContinuar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <LinearLayout
         android:id="@+id/llCampos"
         android:layout_width="match_parent"
