@@ -341,33 +341,31 @@ class Activity_DispositivoAgregar : AppCompatActivity() {
 
                 val scannedDevice = scannedDeviceBeanGlobal
                 if (scannedDevice != null && !scannedDevice.uuid.isNullOrEmpty()) {
-                    Log.d("MiHogar-Vinculacion", "Iniciando vinculación para dispositivo BLE seleccionado: ${scannedDevice.uuid}")
+                    Log.d("MiHogar-Vinculacion", "Iniciando vinculación BLE MultiMode para UUID: ${scannedDevice.uuid}")
                     
-                    val builder = ActivatorBuilder()
-                        .setSsid(txtssidGlobal.text.toString())
-                        .setContext(this@Activity_DispositivoAgregar)
-                        .setPassword(txtclaveGlobal.text.toString())
-                        .setActivatorModel(ActivatorModelEnum.THING_EZ)
-                        .setTimeOut(120)
-                        .setToken(token)
-                        .setListener(object : IThingSmartActivatorListener {
-                            override fun onError(errorCode: String, errorMsg: String) {
-                                Log.w("MiHogar-Vinculacion", "Error al vincular dispositivo BLE ($errorCode: $errorMsg). Intentando Modo EZ universal...")
-                                iniciarModoEZ(token, customName)
-                            }
+                    val multiModeActivatorBean = MultiModeActivatorBean().apply {
+                        deviceType = scannedDevice.deviceType
+                        uuid = scannedDevice.uuid
+                        address = scannedDevice.address
+                        mac = scannedDevice.mac
+                        ssid = txtssidGlobal.text.toString()
+                        pwd = txtclaveGlobal.text.toString()
+                        this.token = token
+                        this.homeId = this@Activity_DispositivoAgregar.homeId
+                        timeout = 120000L
+                    }
 
-                            override fun onActiveSuccess(devResp: DeviceBean) {
-                                Log.i("MiHogar-Vinculacion", "¡Éxito! Dispositivo vinculado: ${devResp.devId}")
-                                finalizarVinculacion(devResp.devId, customName)
-                            }
+                    ThingHomeSdk.getActivator().newMultiModeActivator().startActivator(multiModeActivatorBean, object : IMultiModeActivatorListener {
+                        override fun onSuccess(deviceBean: DeviceBean) {
+                            Log.i("MiHogar-Vinculacion", "¡Éxito BLE MultiMode! Dispositivo vinculado: ${deviceBean.devId}")
+                            finalizarVinculacion(deviceBean.devId, customName)
+                        }
 
-                            override fun onStep(step: String, data: Any) {
-                                Log.d("MiHogar-Vinculacion", "Paso BLE: $step - $data")
-                            }
-                        })
-
-                    mThingActivator = ThingHomeSdk.getActivatorInstance().newActivator(builder)
-                    mThingActivator?.start()
+                        override fun onFailure(code: Int, error: String?, handle: Any?) {
+                            Log.w("MiHogar-Vinculacion", "Falló BLE MultiMode ($code: $error). Ejecutando fallback a Modo EZ...")
+                            iniciarModoEZ(token, customName)
+                        }
+                    })
                 } else {
                     Log.d("MiHogar-Vinculacion", "No hay dispositivo BLE seleccionado. Iniciando Modo EZ (SmartConfig)...")
                     iniciarModoEZ(token, customName)
