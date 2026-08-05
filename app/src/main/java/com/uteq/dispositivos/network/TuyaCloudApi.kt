@@ -36,4 +36,7 @@ interface TuyaCloudApi {
         @Path("device_id") deviceId: String,
         @retrofit2.http.Body body: JsonObject
     ): Call<JsonObject>
+
+    @GET("/v2.0/cloud/thing/last/{uuid}")
+    fun getDeviceInfoByUuid(@Path("uuid") uuid: String): Call<JsonObject>
 }

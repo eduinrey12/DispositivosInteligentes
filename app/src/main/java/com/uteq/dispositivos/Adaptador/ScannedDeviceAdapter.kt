@@ -14,6 +14,7 @@ class ScannedDeviceAdapter(
 ) : RecyclerView.Adapter<ScannedDeviceAdapter.ViewHolder>() {
 
     private val deviceList = mutableListOf<ScanDeviceBean>()
+    private val customDeviceNames = mutableMapOf<String, String>()
 
     fun addDevice(device: ScanDeviceBean) {
         val newKey = device.uuid?.ifEmpty { null } 
@@ -34,9 +35,19 @@ class ScannedDeviceAdapter(
             notifyItemInserted(deviceList.size - 1)
         }
     }
+
+    fun updateDeviceName(uuid: String, friendlyName: String) {
+        if (uuid.isEmpty() || friendlyName.isEmpty()) return
+        customDeviceNames[uuid] = friendlyName
+        val index = deviceList.indexOfFirst { it.uuid == uuid }
+        if (index != -1) {
+            notifyItemChanged(index)
+        }
+    }
     
     fun clearDevices() {
         deviceList.clear()
+        customDeviceNames.clear()
         notifyDataSetChanged()
     }
 
@@ -48,19 +59,20 @@ class ScannedDeviceAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val device = deviceList[position]
+        val uuid = device.uuid ?: ""
+        val friendlyNameFromCloud = customDeviceNames[uuid]
         
-        val devName = if (device.name.isNullOrEmpty() || device.name!!.startsWith("key") || device.name!!.length > 15) {
-            if (!device.productId.isNullOrEmpty()) {
-                "Producto: ${device.productId}"
-            } else {
-                "Dispositivo Tuya"
-            }
-        } else {
-            device.name
+        val devName = when {
+            !friendlyNameFromCloud.isNullOrEmpty() -> friendlyNameFromCloud
+            !device.name.isNullOrEmpty() && !device.name!!.startsWith("key") && device.name!!.length <= 15 -> device.name
+            device.productId == "key54vrth5askhsj" -> "Control Infrarrojo Steren"
+            device.productId == "g30xstbrfn01skee" -> "Tomacorriente Smart"
+            !device.productId.isNullOrEmpty() -> "Dispositivo Smart (${device.productId})"
+            else -> "Dispositivo Tuya"
         }
         
         holder.txtDeviceName.text = devName
-        holder.txtDeviceMac.text = "ID: ${device.uuid ?: device.mac ?: "Desconocido"}"
+        holder.txtDeviceMac.text = "UUID: ${device.uuid ?: device.mac ?: "Desconocido"}"
         
         holder.itemView.setOnClickListener {
             onDeviceSelected(device)

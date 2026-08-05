@@ -37,6 +37,7 @@ import com.thingclips.smart.sdk.bean.DeviceBean
 import com.thingclips.smart.sdk.bean.MultiModeActivatorBean
 import com.thingclips.smart.sdk.enums.ActivatorModelEnum
 import com.uteq.dispositivos.Adaptador.ScannedDeviceAdapter
+import com.uteq.dispositivos.network.TuyaCloudClient
 
 class Activity_DispositivoAgregar : AppCompatActivity() {
 
@@ -327,7 +328,46 @@ class Activity_DispositivoAgregar : AppCompatActivity() {
                         }
                         scannedDeviceAdapter.addDevice(bean)
                     }
+
+                    if (!bean.uuid.isNullOrEmpty()) {
+                        consultarInformacionDispositivoPorUuid(bean.uuid!!)
+                    }
                 }
+            }
+        })
+    }
+
+    private fun consultarInformacionDispositivoPorUuid(uuid: String) {
+        if (uuid.isEmpty()) return
+        Log.d("MiHogar-Escaneo", "Consultando API Cloud GET /v2.0/cloud/thing/last/$uuid ...")
+
+        TuyaCloudClient.api.getDeviceInfoByUuid(uuid).enqueue(object : retrofit2.Callback<com.google.gson.JsonObject> {
+            override fun onResponse(call: retrofit2.Call<com.google.gson.JsonObject>, response: retrofit2.Response<com.google.gson.JsonObject>) {
+                val body = response.body()
+                Log.d("MiHogar-Escaneo", "Respuesta API Cloud para $uuid: $body")
+                if (body != null && body.has("result") && !body.get("result").isJsonNull) {
+                    val result = body.getAsJsonObject("result")
+                    val name = if (result.has("product_name") && !result.get("product_name").isJsonNull) {
+                        result.get("product_name").asString
+                    } else if (result.has("name") && !result.get("name").isJsonNull) {
+                        result.get("name").asString
+                    } else if (result.has("custom_name") && !result.get("custom_name").isJsonNull) {
+                        result.get("custom_name").asString
+                    } else {
+                        null
+                    }
+
+                    if (!name.isNullOrEmpty()) {
+                        Log.i("MiHogar-Escaneo", "¡Nombre obtenido desde Tuya Cloud API para $uuid: $name!")
+                        runOnUiThread {
+                            scannedDeviceAdapter.updateDeviceName(uuid, name)
+                        }
+                    }
+                }
+            }
+
+            override fun onFailure(call: retrofit2.Call<com.google.gson.JsonObject>, t: Throwable) {
+                Log.w("MiHogar-Escaneo", "Error llamando a Tuya Cloud API para UUID $uuid: ${t.message}")
             }
         })
     }
